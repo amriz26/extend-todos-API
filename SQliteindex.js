@@ -6,9 +6,9 @@ const port = 3000;
 app.use(express.json());
 
 // initialize SQLite database
-const db = new sqlite3.Database(':memory:'); // decided to use in-memory database for simplicity
+const db = new sqlite3.Database(':memory:'); // use inmemory database for simplicity
 
-// create todos table
+// Create todos table
 db.serialize(() => {
     db.run(`CREATE TABLE todos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,8 +18,7 @@ db.serialize(() => {
     )`);
 });
 
-// Question 1: Add a "Priority" field to the To-Do API
-// POST /todos - add a new to-do item with priority
+// POST /todos - ccreate a new to-do item with priority
 app.post('/todos', (req, res) => {
     const { task, priority = "medium" } = req.body;
     db.run(`INSERT INTO todos (task, priority, completed) VALUES (?, ?, 0)`, [task, priority], function(err) {
@@ -28,17 +27,7 @@ app.post('/todos', (req, res) => {
     });
 });
 
-// Question 2: Implement a "Complete All" Endpoint
-// PUT /todos/complete-all - mark all to-do items as completed
-app.put('/todos/complete-all', (req, res) => {
-    db.run(`UPDATE todos SET completed = 1`, function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "All to-do items have been marked as completed." });
-    });
-});
-
-// Question 3: Filter To-Do Items by Completion Status
-// GET /todos - retrieve to-do items, optionally filtered by completion status
+// GET /todos - retrieve all to-do items, optionally filtered by completion status
 app.get('/todos', (req, res) => {
     const { completed } = req.query;
     let query = 'SELECT * FROM todos';
@@ -55,8 +44,25 @@ app.get('/todos', (req, res) => {
     });
 });
 
+// PUT /todos/complete-all - mark all to-do items as completed
+app.put('/todos/complete-all', (req, res) => {
+    db.run(`UPDATE todos SET completed = 1`, function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "All to-do items have been marked as completed." });
+    });
+});
 
-// can start the server here
+// DELETE /todos/:id - delete a to-do item by ID
+app.delete('/todos/:id', (req, res) => {
+    const { id } = req.params;
+    db.run(`DELETE FROM todos WHERE id = ?`, [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: "To-do item not found" });
+        res.json({ message: `To-do item with ID ${id} deleted successfully.` });
+    });
+});
+
+// sstart the server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
